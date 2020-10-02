@@ -1,0 +1,3 @@
+ident,type,name,elevation_ft,continent,iso_country,iso_region,municipality,gps_code,iata_code,local_code,coordinates
+K31,small_airport,Sharon Airport,1508,NA,US,US-NY,Sharon Springs,K31,,K31,"42.77840042114258, -74.57759857177734"
+K31E,small_airport,Eagles Nest Airport,35,NA,US,US-NJ,West Creek,K31E,,31E,"39.665401458740234, -74.30789947509766"
