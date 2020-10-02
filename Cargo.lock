@@ -13,6 +13,7 @@ dependencies = [
 [[package]]
 name = "adb-data"
 version = "0.1.0"
+source = "git+https://github.com/archer884/adb-data.git#e1656a3615d3edd07ad12b0ad8da616dc32d7406"
 dependencies = [
  "geoutils",
  "serde",
