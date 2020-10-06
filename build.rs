@@ -45,7 +45,7 @@ fn main() {
             item.iata_code,
             item.local_code,
             format!(
-                "Coords {{ latitude: {:.01}, longitude: {:.01} }}",
+                "Coords {{ latitude: {:.012}, longitude: {:.012} }}",
                 item.coordinates.latitude, item.coordinates.longitude
             ),
         )
