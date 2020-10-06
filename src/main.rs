@@ -4,9 +4,6 @@ use std::process;
 
 include!(concat!(env!("OUT_DIR"), "/database.rs"));
 
-// Ordinarily, I would just use structopt, but I felt like this program would
-// potentially wind up with optional subcommands.
-
 enum Cmd {
     Distance(String, String),
     Find(String),
@@ -19,8 +16,28 @@ impl Display for AirportFormatter<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let airport = self.0;
         match airport.elevation_ft {
-            Some(elevation) => write!(f, "{} {} ({} feet)\n  {}\n  {}\n  {}\n  {:?}", airport.ident, airport.name, elevation, airport.kind, airport.municipality, airport.iso_region, airport.coordinates),
-            None => write!(f, "{} {}\n  {}\n  {}\n  {}\n  {:?}", airport.ident, airport.name, airport.kind, airport.municipality, airport.iso_region, airport.coordinates),
+            Some(elevation) => write!(
+                f,
+                "{} {} ({} feet)\n  {}\n  {}\n  {}\n  {:?}",
+                airport.ident,
+                airport.name,
+                elevation,
+                airport.kind,
+                airport.municipality,
+                airport.iso_region,
+                airport.coordinates
+            ),
+
+            None => write!(
+                f,
+                "{} {}\n  {}\n  {}\n  {}\n  {:?}",
+                airport.ident,
+                airport.name,
+                airport.kind,
+                airport.municipality,
+                airport.iso_region,
+                airport.coordinates
+            ),
         }
     }
 }
@@ -47,6 +64,10 @@ fn print_find(query: &str) {
             format_candidates(candidates);
         }
 
+        // This search mechanism is STUPID expensive, but I'm not convinced
+        // it's ever gonna get used. We could, in theory, speed this up at
+        // compile time by modifying the generated code to include capitalized
+        // forms of the strings in question.
         Err(_) => {
             let query = query.to_ascii_uppercase();
             let candidates = select_candidates(|x| {
@@ -82,18 +103,8 @@ fn format_candidates(candidates: impl Iterator<Item = (&'static str, &'static st
 fn print_distance(a: &str, b: &str) {
     const METERS_PER_NAUTICAL_MILE: f64 = 1852.001;
 
-    fn get_airport<'a>(identifier: &str) -> &'a AotAirport {
-        match find_by_identifier(&*identifier.to_ascii_uppercase()) {
-            Some(airport) => airport,
-            None => {
-                eprintln!("{} not found", identifier);
-                process::exit(2);
-            }
-        }
-    }
-
-    let a = get_airport(a).coordinates.location();
-    let b = get_airport(b).coordinates.location();
+    let a = find_by_identifier(&a).coordinates.location();
+    let b = find_by_identifier(&b).coordinates.location();
 
     println!(
         "{:.02} nmi",
@@ -102,23 +113,23 @@ fn print_distance(a: &str, b: &str) {
 }
 
 fn print_listing(identifier: &str) {
-    match find_by_identifier(&*identifier.to_ascii_uppercase()) {
-        Some(airport) => {
-            println!("{}", AirportFormatter(airport));
-        }
+    println!("{}", AirportFormatter(find_by_identifier(&identifier)));
+}
 
+fn find_by_identifier(identifier: &str) -> &'static AotAirport {
+    let identifier = identifier.to_ascii_uppercase();
+    let result = AIRPORTS
+        .binary_search_by(|probe| probe.ident.cmp(&identifier))
+        .ok()
+        .and_then(|x| AIRPORTS.get(x));
+
+    match result {
+        Some(airport) => airport,
         None => {
-            eprintln!("Airport not found");
+            eprintln!("{} not found", identifier);
             process::exit(1);
         }
     }
-}
-
-fn find_by_identifier(identifier: &str) -> Option<&'static AotAirport> {
-    AIRPORTS
-        .binary_search_by(|probe| probe.ident.cmp(identifier))
-        .ok()
-        .and_then(|x| AIRPORTS.get(x))
 }
 
 fn read_options() -> Cmd {
