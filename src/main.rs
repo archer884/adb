@@ -145,7 +145,8 @@ fn find_by_identifier(identifier: &str) -> &'static AotAirport {
 
 fn read_options() -> Cmd {
     use clap::{
-        crate_authors, crate_version, value_t, values_t, App, AppSettings, Arg, SubCommand,
+        crate_authors, crate_version, value_t, values_t, App, AppSettings, Arg, ArgGroup,
+        SubCommand,
     };
 
     let app = App::new("adb")
@@ -160,9 +161,15 @@ fn read_options() -> Cmd {
         .arg(
             Arg::with_name("IDENTS")
                 .takes_value(true)
-                .required(true)
                 .multiple(true)
                 .min_values(2),
+        )
+        .arg(Arg::with_name("FROM_STDIN").long("stdin"))
+        .group(
+            ArgGroup::with_name("IDENTIFIER_SOURCE")
+                .arg("IDENTS")
+                .arg("FROM_STDIN")
+                .required(true),
         );
 
     let find_cmd = SubCommand::with_name("find")
@@ -172,8 +179,17 @@ fn read_options() -> Cmd {
     let options = app.subcommand(dist_cmd).subcommand(find_cmd).get_matches();
 
     if let Some(options) = options.subcommand_matches("dist") {
-        let identifiers = values_t!(options, "IDENTS", String).unwrap();
-        return Cmd::Distance(identifiers);
+        return match values_t!(options, "IDENTS", String) {
+            Ok(identifiers) => Cmd::Distance(identifiers),
+            Err(_) => {
+                let identifiers = try_read_from_stdin();
+                if identifiers.len() < 2 {
+                    eprintln!("Provide at least two identifiers");
+                    process::exit(1);
+                }
+                Cmd::Distance(identifiers)
+            }
+        };
     }
 
     if let Some(options) = options.subcommand_matches("find") {
@@ -183,4 +199,16 @@ fn read_options() -> Cmd {
 
     let identifier = value_t!(options, "IDENT", String).unwrap();
     Cmd::Listing(identifier)
+}
+
+fn try_read_from_stdin() -> Vec<String> {
+    use atty::Stream;
+    use std::io::{self, BufRead};
+
+    if atty::is(Stream::Stdin) {
+        return Vec::new();
+    }
+
+    let handle = io::stdin();
+    handle.lock().lines().filter_map(Result::ok).collect()
 }
