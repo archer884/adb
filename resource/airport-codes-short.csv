@@ -1,2 +1,3 @@
 ident,type,name,elevation_ft,continent,iso_country,iso_region,municipality,gps_code,iata_code,local_code,coordinates
-00A,heliport,Total Rf Heliport,11,NA,US,US-PA,Bensalem,00A,,00A,"40.07080078125, -74.93360137939453"
+KEB,small_airport,Nanwalek Airport,27,NA,US,US-AK,Nanwalek,KEB,KEB,KEB,"59.3521003723, -151.925003052"
+KEBB,small_airport,Nanwalek Airport,,NA,US,US-AK,Nanwalek,KEB,KEB,KEB,"59.3521003723, -151.925003052"

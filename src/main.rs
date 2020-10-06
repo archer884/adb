@@ -1,4 +1,5 @@
 use adb_data::AotAirport;
+use std::fmt::{self, Display};
 use std::process;
 
 include!(concat!(env!("OUT_DIR"), "/database.rs"));
@@ -10,6 +11,38 @@ enum Cmd {
     Distance(String, String),
     Find(String),
     Listing(String),
+}
+
+struct AirportFormatter<'a>(&'a AotAirport);
+
+// AotAirport {
+//     ident: "KEB",
+//     kind: "small_airport",   
+//     name: "Nanwalek Airport",
+//     elevation_ft: Some(
+//         27,
+//     ),
+//     continent: "NA",
+//     iso_country: "US",
+//     iso_region: "US-AK",
+//     municipality: "Nanwalek",
+//     gps_code: "KEB",
+//     iata_code: "KEB",
+//     local_code: "KEB",
+//     coordinates: Coords {
+//         latitude: 59.4,
+//         longitude: -151.9,
+//     },
+// }
+
+impl Display for AirportFormatter<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let airport = self.0;
+        match airport.elevation_ft {
+            Some(elevation) => write!(f, "{} {} ({} feet)\n  {}\n  {}\n  {}\n  {:?}", airport.ident, airport.name, elevation, airport.kind, airport.municipality, airport.iso_region, airport.coordinates),
+            None => write!(f, "{} {}\n  {}\n  {}\n  {}\n  {:?}", airport.ident, airport.name, airport.kind, airport.municipality, airport.iso_region, airport.coordinates),
+        }
+    }
 }
 
 fn main() {
@@ -91,7 +124,7 @@ fn print_distance(a: &str, b: &str) {
 fn print_listing(identifier: &str) {
     match find_by_identifier(&*identifier.to_ascii_uppercase()) {
         Some(airport) => {
-            println!("{:#?}", airport);
+            println!("{}", AirportFormatter(airport));
         }
 
         None => {
