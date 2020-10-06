@@ -172,15 +172,15 @@ fn read_options() -> Cmd {
     let options = app.subcommand(dist_cmd).subcommand(find_cmd).get_matches();
 
     if let Some(options) = options.subcommand_matches("dist") {
-        let identifiers = values_t!(options, "IDENTS", String).unwrap_or_else(|e| e.exit());
+        let identifiers = values_t!(options, "IDENTS", String).unwrap();
         return Cmd::Distance(identifiers);
     }
 
     if let Some(options) = options.subcommand_matches("find") {
-        let query = value_t!(options, "QUERY", String).unwrap_or_else(|e| e.exit());
+        let query = value_t!(options, "QUERY", String).unwrap();
         return Cmd::Find(query);
     }
 
-    let identifier = value_t!(options, "IDENT", String).unwrap_or_else(|e| e.exit());
+    let identifier = value_t!(options, "IDENT", String).unwrap();
     Cmd::Listing(identifier)
 }
