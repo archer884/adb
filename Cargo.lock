@@ -2,12 +2,11 @@
 # It is not intended for manual editing.
 [[package]]
 name = "adb"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "adb-data",
  "clap",
  "csv",
- "hashbrown",
  "regex",
 ]
 
@@ -19,12 +18,6 @@ dependencies = [
  "geoutils",
  "serde",
 ]
-
-[[package]]
-name = "ahash"
-version = "0.4.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0adac150c2dd5a9c864d054e07bda5e6bc010cd10036ea5f17e82a2f5867f735"
 
 [[package]]
 name = "aho-corasick"
@@ -121,15 +114,6 @@ name = "geoutils"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4635c5c079227d2e54fe0f69b3f1ac9376a517608762267975ee1603fa0800bf"
-
-[[package]]
-name = "hashbrown"
-version = "0.9.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7afe4a420e3fe79967a00898cc1f4db7c8a49a9333a29f8a4bd76a253d5cd04"
-dependencies = [
- "ahash",
-]
 
 [[package]]
 name = "hermit-abi"
