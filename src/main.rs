@@ -15,26 +15,6 @@ enum Cmd {
 
 struct AirportFormatter<'a>(&'a AotAirport);
 
-// AotAirport {
-//     ident: "KEB",
-//     kind: "small_airport",   
-//     name: "Nanwalek Airport",
-//     elevation_ft: Some(
-//         27,
-//     ),
-//     continent: "NA",
-//     iso_country: "US",
-//     iso_region: "US-AK",
-//     municipality: "Nanwalek",
-//     gps_code: "KEB",
-//     iata_code: "KEB",
-//     local_code: "KEB",
-//     coordinates: Coords {
-//         latitude: 59.4,
-//         longitude: -151.9,
-//     },
-// }
-
 impl Display for AirportFormatter<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let airport = self.0;
