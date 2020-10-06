@@ -1,11 +1,14 @@
+mod pairs;
+
 use adb_data::AotAirport;
+use pairs::Pairs;
 use std::fmt::{self, Display};
 use std::process;
 
 include!(concat!(env!("OUT_DIR"), "/database.rs"));
 
 enum Cmd {
-    Distance(String, String),
+    Distance(Vec<String>),
     Find(String),
     Listing(String),
 }
@@ -44,10 +47,30 @@ impl Display for AirportFormatter<'_> {
 
 fn main() {
     match read_options() {
-        Cmd::Distance(a, b) => print_distance(&a, &b),
+        Cmd::Distance(identifiers) => print_distance(&identifiers),
         Cmd::Find(query) => print_find(&query),
         Cmd::Listing(identifier) => print_listing(&identifier),
     }
+}
+
+fn print_distance<T: AsRef<str>>(identifiers: &[T]) {
+    const METERS_PER_NAUTICAL_MILE: f64 = 1852.001;
+
+    let mut dist = 0.0;
+    let airport_pairs = identifiers.pairs().map(|(a, b)| {
+        (
+            find_by_identifier(a.as_ref()),
+            find_by_identifier(b.as_ref()),
+        )
+    });
+
+    for (a, b) in airport_pairs {
+        let a = a.coordinates.location();
+        let b = b.coordinates.location();
+        dist += a.distance_to(&b).unwrap().meters();
+    }
+
+    println!("{:.02} nmi", dist / METERS_PER_NAUTICAL_MILE);
 }
 
 fn print_find(query: &str) {
@@ -100,18 +123,6 @@ fn format_candidates(candidates: impl Iterator<Item = (&'static str, &'static st
     }
 }
 
-fn print_distance(a: &str, b: &str) {
-    const METERS_PER_NAUTICAL_MILE: f64 = 1852.001;
-
-    let a = find_by_identifier(&a).coordinates.location();
-    let b = find_by_identifier(&b).coordinates.location();
-
-    println!(
-        "{:.02} nmi",
-        a.distance_to(&b).unwrap().meters() / METERS_PER_NAUTICAL_MILE
-    )
-}
-
 fn print_listing(identifier: &str) {
     println!("{}", AirportFormatter(find_by_identifier(&identifier)));
 }
@@ -133,7 +144,9 @@ fn find_by_identifier(identifier: &str) -> &'static AotAirport {
 }
 
 fn read_options() -> Cmd {
-    use clap::{crate_authors, crate_version, value_t, App, AppSettings, Arg, SubCommand};
+    use clap::{
+        crate_authors, crate_version, value_t, values_t, App, AppSettings, Arg, SubCommand,
+    };
 
     let app = App::new("adb")
         .setting(AppSettings::SubcommandsNegateReqs)
@@ -144,11 +157,12 @@ fn read_options() -> Cmd {
 
     let dist_cmd = SubCommand::with_name("dist")
         .about("Calculate the distance between two airports")
-        .arg(Arg::with_name("ORIGIN").takes_value(true).required(true))
         .arg(
-            Arg::with_name("DESTINATION")
+            Arg::with_name("IDENTS")
                 .takes_value(true)
-                .required(true),
+                .required(true)
+                .multiple(true)
+                .min_values(2),
         );
 
     let find_cmd = SubCommand::with_name("find")
@@ -158,9 +172,8 @@ fn read_options() -> Cmd {
     let options = app.subcommand(dist_cmd).subcommand(find_cmd).get_matches();
 
     if let Some(options) = options.subcommand_matches("dist") {
-        let origin = value_t!(options, "ORIGIN", String).unwrap_or_else(|e| e.exit());
-        let destination = value_t!(options, "DESTINATION", String).unwrap_or_else(|e| e.exit());
-        return Cmd::Distance(origin, destination);
+        let identifiers = values_t!(options, "IDENTS", String).unwrap_or_else(|e| e.exit());
+        return Cmd::Distance(identifiers);
     }
 
     if let Some(options) = options.subcommand_matches("find") {
