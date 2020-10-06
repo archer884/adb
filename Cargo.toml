@@ -1,6 +1,6 @@
 [package]
 name = "adb"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["J/A <archer884@gmail.com>"]
 edition = "2018"
 
@@ -10,6 +10,7 @@ edition = "2018"
 adb-data = { git = "https://github.com/archer884/adb-data.git" }
 clap = "2.33.3"
 hashbrown = "0.9.1"
+regex = "1.3.9"
 
 [build-dependencies]
 adb-data = { git = "https://github.com/archer884/adb-data.git", features = ["aotload"] }

@@ -56,7 +56,7 @@ fn main() {
     fs::write(&dest_path, buf).unwrap();
 
     println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rerun-if-changed=resource/airport-codes.csv");
+    println!("cargo:rerun-if-changed=resource/airport-codes-short.csv");
     println!("cargo:rerun-if-changed=resource/mod_head.txt");
 }
 
@@ -65,8 +65,14 @@ fn read_data() -> Vec<Airport> {
     use std::io::Cursor;
 
     // For a start, since this happens at compile time, let's just bail if there's
-    // any data we can't actually read.
+    // any data we can't actually read. Additionally, in order to save on carbon
+    // emissions, we provide only a faux csv for debug purposes.
+    #[cfg(debug_assertions)]
+    static CSV_DATA: &str = include_str!("./resource/airport-codes-short.csv");
+
+    #[cfg(not(debug_assertions))]
     static CSV_DATA: &str = include_str!("./resource/airport-codes.csv");
+
     let data: Result<Vec<Airport>, _> = Reader::from_reader(Cursor::new(CSV_DATA))
         .deserialize()
         .collect();
