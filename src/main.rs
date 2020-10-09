@@ -87,6 +87,7 @@ fn print_distance<T: AsRef<str>>(identifiers: &[T]) {
         .map(|x| x.2.len())
         .max()
         .unwrap_or_default();
+
     for (a, b, dist) in preformat_records {
         println!(
             "{} -> {}  {:>width$}",
@@ -97,7 +98,10 @@ fn print_distance<T: AsRef<str>>(identifiers: &[T]) {
         );
     }
 
-    println!("\nTotal distance: {:.01} nm", dist / METERS_PER_NAUTICAL_MILE);
+    println!(
+        "\nTotal distance: {:.01} nm",
+        dist / METERS_PER_NAUTICAL_MILE
+    );
 }
 
 fn print_find(query: &str) {
