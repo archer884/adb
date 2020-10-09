@@ -65,6 +65,7 @@ fn print_distance<T: AsRef<str>>(identifiers: &[T]) {
 
     let mut dist = 0.0;
     let mut preformat_records = Vec::new();
+    let mut dist_column_width = 0;
 
     for (a, b) in airport_pairs {
         let leg = a
@@ -74,23 +75,15 @@ fn print_distance<T: AsRef<str>>(identifiers: &[T]) {
             .unwrap()
             .meters();
 
-        preformat_records.push((
-            a.ident,
-            b.ident,
-            format!("{:.01}", leg / METERS_PER_NAUTICAL_MILE),
-        ));
+        let formatted_distance = format!("{:.01}", leg / METERS_PER_NAUTICAL_MILE);
+        dist_column_width = std::cmp::max(dist_column_width, formatted_distance.len());
+        preformat_records.push((a.ident, b.ident, formatted_distance));
         dist += leg;
     }
 
-    let dist_column_width = preformat_records
-        .iter()
-        .map(|x| x.2.len())
-        .max()
-        .unwrap_or_default();
-
     for (a, b, dist) in preformat_records {
         println!(
-            "{} -> {}  {:>width$}",
+            "{:>4} -> {:>4}  {:>width$}",
             a,
             b,
             dist,
