@@ -56,7 +56,6 @@ fn main() {
 fn print_distance<T: AsRef<str>>(identifiers: &[T]) {
     const METERS_PER_NAUTICAL_MILE: f64 = 1852.001;
 
-    let mut dist = 0.0;
     let airport_pairs = identifiers.pairs().map(|(a, b)| {
         (
             find_by_identifier(a.as_ref()),
@@ -64,13 +63,41 @@ fn print_distance<T: AsRef<str>>(identifiers: &[T]) {
         )
     });
 
+    let mut dist = 0.0;
+    let mut preformat_records = Vec::new();
+
     for (a, b) in airport_pairs {
-        let a = a.coordinates.location();
-        let b = b.coordinates.location();
-        dist += a.distance_to(&b).unwrap().meters();
+        let leg = a
+            .coordinates
+            .location()
+            .distance_to(&b.coordinates.location())
+            .unwrap()
+            .meters();
+
+        preformat_records.push((
+            a.ident,
+            b.ident,
+            format!("{:.01}", leg / METERS_PER_NAUTICAL_MILE),
+        ));
+        dist += leg;
     }
 
-    println!("{:.02} nmi", dist / METERS_PER_NAUTICAL_MILE);
+    let dist_column_width = preformat_records
+        .iter()
+        .map(|x| x.2.len())
+        .max()
+        .unwrap_or_default();
+    for (a, b, dist) in preformat_records {
+        println!(
+            "{} -> {}  {:>width$}",
+            a,
+            b,
+            dist,
+            width = dist_column_width
+        );
+    }
+
+    println!("\nTotal distance: {:.01} nm", dist / METERS_PER_NAUTICAL_MILE);
 }
 
 fn print_find(query: &str) {
