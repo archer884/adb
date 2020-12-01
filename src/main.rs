@@ -168,42 +168,38 @@ fn find_by_identifier(identifier: &str) -> &'static AotAirport {
 }
 
 fn read_options() -> Cmd {
-    use clap::{
-        crate_authors, crate_version, value_t, values_t, App, AppSettings, Arg, ArgGroup,
-        SubCommand,
-    };
+    use clap::{app_from_crate, AppSettings, Arg, ArgGroup};
 
-    let app = App::new("adb")
+    let app = app_from_crate!()
         .setting(AppSettings::SubcommandsNegateReqs)
-        .author(crate_authors!())
-        .version(crate_version!())
-        .about("Airport code database")
-        .arg(Arg::with_name("IDENT").takes_value(true).required(true));
+        .arg(Arg::new("identifier").takes_value(true).required(true));
 
-    let dist_cmd = SubCommand::with_name("dist")
-        .about("Calculate the distance between two airports")
+    let dist = app_from_crate!()
+        .name("dist")
+        .about("Calculate the distance between two identifiers")
         .arg(
-            Arg::with_name("IDENTS")
+            Arg::new("identifiers")
                 .takes_value(true)
                 .multiple(true)
                 .min_values(2),
         )
-        .arg(Arg::with_name("FROM_STDIN").long("stdin"))
+        .arg(Arg::new("from_stdin").long("stdin"))
         .group(
-            ArgGroup::with_name("IDENTIFIER_SOURCE")
-                .arg("IDENTS")
-                .arg("FROM_STDIN")
+            ArgGroup::new("ident_src")
+                .arg("identifiers")
+                .arg("from_stdin")
                 .required(true),
         );
 
-    let find_cmd = SubCommand::with_name("find")
+    let find = app_from_crate!()
+        .name("find")
         .about("Find an airport by name or town")
-        .arg(Arg::with_name("QUERY").takes_value(true).required(true));
+        .arg(Arg::new("query").takes_value(true).required(true));
 
-    let options = app.subcommand(dist_cmd).subcommand(find_cmd).get_matches();
+    let options = app.subcommand(dist).subcommand(find).get_matches();
 
     if let Some(options) = options.subcommand_matches("dist") {
-        return match values_t!(options, "IDENTS", String) {
+        return match options.values_of_t("identifiers") {
             Ok(identifiers) => Cmd::Distance(identifiers),
             Err(_) => {
                 let identifiers = try_read_from_stdin();
@@ -217,12 +213,10 @@ fn read_options() -> Cmd {
     }
 
     if let Some(options) = options.subcommand_matches("find") {
-        let query = value_t!(options, "QUERY", String).unwrap();
-        return Cmd::Find(query);
+        return Cmd::Find(options.value_of_t_or_exit("query"));
     }
 
-    let identifier = value_t!(options, "IDENT", String).unwrap();
-    Cmd::Listing(identifier)
+    Cmd::Listing(options.value_of_t_or_exit("identifier"))
 }
 
 fn try_read_from_stdin() -> Vec<String> {
