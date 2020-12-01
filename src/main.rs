@@ -168,15 +168,16 @@ fn find_by_identifier(identifier: &str) -> &'static AotAirport {
 }
 
 fn read_options() -> Cmd {
-    use clap::{app_from_crate, AppSettings, Arg, ArgGroup};
+    use clap::{app_from_crate, Arg, ArgGroup};
 
-    let app = app_from_crate!()
-        .setting(AppSettings::SubcommandsNegateReqs)
+    let ident = app_from_crate!()
+        .name("ident")
+        .about("Prints information about an identifier")
         .arg(Arg::new("identifier").takes_value(true).required(true));
 
     let dist = app_from_crate!()
         .name("dist")
-        .about("Calculate the distance between two identifiers")
+        .about("Calculate the distance between identifiers")
         .arg(
             Arg::new("identifiers")
                 .takes_value(true)
@@ -196,7 +197,15 @@ fn read_options() -> Cmd {
         .about("Find an airport by name or town")
         .arg(Arg::new("query").takes_value(true).required(true));
 
-    let options = app.subcommand(dist).subcommand(find).get_matches();
+    let options = app_from_crate!()
+        .subcommand(ident)
+        .subcommand(dist)
+        .subcommand(find)
+        .get_matches();
+
+    if let Some(options) = options.subcommand_matches("ident") {
+        return Cmd::Listing(options.value_of_t_or_exit("identifier"));
+    }
 
     if let Some(options) = options.subcommand_matches("dist") {
         return match options.values_of_t("identifiers") {
@@ -216,7 +225,7 @@ fn read_options() -> Cmd {
         return Cmd::Find(options.value_of_t_or_exit("query"));
     }
 
-    Cmd::Listing(options.value_of_t_or_exit("identifier"))
+    todo!("Huh?");
 }
 
 fn try_read_from_stdin() -> Vec<String> {
