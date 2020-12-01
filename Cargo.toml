@@ -9,9 +9,13 @@ description = "An airport code database and nav assist"
 
 [dependencies]
 adb-data = { git = "https://github.com/archer884/adb-data.git" }
-clap = "3.0.0-beta.2"
 regex = "1.4.2"
 atty = "0.2.14"
+
+[dependencies.clap]
+version = "3.0.0-beta.2"
+default-features = false
+features = ["cargo", "color", "std", "wrap_help"]
 
 [build-dependencies]
 adb-data = { git = "https://github.com/archer884/adb-data.git", features = ["aotload"] }
