@@ -1,6 +1,7 @@
 mod pairs;
 
 use adb_data::AotAirport;
+use clap::AppSettings;
 use pairs::Pairs;
 use std::fmt::{self, Display};
 use std::process;
@@ -170,11 +171,6 @@ fn find_by_identifier(identifier: &str) -> &'static AotAirport {
 fn read_options() -> Cmd {
     use clap::{app_from_crate, Arg, ArgGroup};
 
-    let ident = app_from_crate!()
-        .name("ident")
-        .about("Prints information about an identifier")
-        .arg(Arg::new("identifier").takes_value(true).required(true));
-
     let dist = app_from_crate!()
         .name("dist")
         .about("Calculate the distance between identifiers")
@@ -198,14 +194,11 @@ fn read_options() -> Cmd {
         .arg(Arg::new("query").takes_value(true).required(true));
 
     let options = app_from_crate!()
-        .subcommand(ident)
+        .setting(AppSettings::SubcommandsNegateReqs)
+        .arg(Arg::new("identifier").takes_value(true).require_delimiter(true))
         .subcommand(dist)
         .subcommand(find)
         .get_matches();
-
-    if let Some(options) = options.subcommand_matches("ident") {
-        return Cmd::Listing(options.value_of_t_or_exit("identifier"));
-    }
 
     if let Some(options) = options.subcommand_matches("dist") {
         return match options.values_of_t("identifiers") {
@@ -225,7 +218,7 @@ fn read_options() -> Cmd {
         return Cmd::Find(options.value_of_t_or_exit("query"));
     }
 
-    todo!("Huh?");
+    Cmd::Listing(options.value_of_t_or_exit("identifier"))
 }
 
 fn try_read_from_stdin() -> Vec<String> {
