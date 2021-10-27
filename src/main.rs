@@ -105,9 +105,8 @@ fn print_find(query: &str) {
 
     match pattern {
         Ok(pattern) => {
-            let candidates = select_candidates(|x| {
-                pattern.is_match(&x.name) || pattern.is_match(&x.municipality)
-            });
+            let candidates =
+                select_candidates(|x| pattern.is_match(x.name) || pattern.is_match(x.municipality));
 
             format_candidates(candidates);
         }
@@ -149,7 +148,7 @@ fn format_candidates(candidates: impl Iterator<Item = (&'static str, &'static st
 }
 
 fn print_listing(identifier: &str) {
-    println!("{}", AirportFormatter(find_by_identifier(&identifier)));
+    println!("{}", AirportFormatter(find_by_identifier(identifier)));
 }
 
 fn find_by_identifier(identifier: &str) -> &'static AotAirport {
@@ -195,7 +194,11 @@ fn read_options() -> Cmd {
 
     let options = app_from_crate!()
         .setting(AppSettings::SubcommandsNegateReqs)
-        .arg(Arg::new("identifier").takes_value(true).require_delimiter(true))
+        .arg(
+            Arg::new("identifier")
+                .takes_value(true)
+                .require_delimiter(true),
+        )
         .subcommand(dist)
         .subcommand(find)
         .get_matches();
