@@ -2,7 +2,7 @@
 name = "adb"
 version = "0.2.0"
 authors = ["J/A <archer884@gmail.com>"]
-edition = "2018"
+edition = "2021"
 description = "An airport code database and nav assist"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
