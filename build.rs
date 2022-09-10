@@ -19,7 +19,7 @@ fn main() {
             ident: \"{}\", \
             kind: \"{}\", \
             name: \"{}\", \
-            elevation_ft: {}, \
+            elevation_ft: {:?}, \
             continent: \"{}\", \
             iso_country: \"{}\", \
             iso_region: \"{}\", \
@@ -27,16 +27,12 @@ fn main() {
             gps_code: \"{}\", \
             iata_code: \"{}\", \
             local_code: \"{}\", \
-            coordinates: {} \
+            coordinates: {:?} \
         }},",
             item.ident,
             item.kind,
             safe_string(&item.name),
-            item.elevation_ft
-                .map(|x| format!("Some({})", x))
-                .as_ref()
-                .map(AsRef::as_ref)
-                .unwrap_or("None"),
+            item.elevation_ft,
             item.continent,
             item.iso_country,
             item.iso_region,
@@ -44,10 +40,7 @@ fn main() {
             item.gps_code,
             item.iata_code,
             item.local_code,
-            format!(
-                "Coords {{ latitude: {:.012}, longitude: {:.012} }}",
-                item.coordinates.latitude, item.coordinates.longitude
-            ),
+            item.coordinates,
         )
         .unwrap();
     }
@@ -82,5 +75,5 @@ fn read_data() -> Vec<Airport> {
 }
 
 fn safe_string(s: &str) -> String {
-    s.replace("\\", "\\\\").replace("\"", "\\\"")
+    s.replace('\\', "\\\\").replace('"', "\\\"")
 }

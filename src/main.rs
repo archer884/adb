@@ -1,10 +1,11 @@
+use std::fmt::{self, Display};
+use std::process;
+
 mod pairs;
 
 use adb_data::AotAirport;
 use clap::Parser;
 use pairs::Pairs;
-use std::fmt::{self, Display};
-use std::process;
 
 include!(concat!(env!("OUT_DIR"), "/database.rs"));
 
@@ -14,9 +15,15 @@ enum Args {
         #[clap(min_values(2))]
         identifiers: Vec<String>,
     },
-    Find { query: String },
-    Search { query: String },
-    Info { identifier: String },
+    Find {
+        query: String,
+    },
+    Search {
+        query: String,
+    },
+    Info {
+        identifier: String,
+    },
 }
 
 struct AirportFormatter<'a>(&'a AotAirport);
@@ -39,7 +46,7 @@ impl Display for AirportFormatter<'_> {
 
             None => write!(
                 f,
-                "{} {}\n  {}\n  {}\n  {}\n  {:?}",
+                "{} {}\n  {}\n  {}\n  {}\n  {}",
                 airport.ident,
                 airport.name,
                 airport.kind,
