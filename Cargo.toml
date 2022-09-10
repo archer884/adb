@@ -8,15 +8,15 @@ description = "An airport code database and nav assist"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-regex = "1.4.5"
+regex = "1.5.5"
 atty = "0.2.14"
 
 [dependencies.adb-data]
 git = "https://github.com/archer884/adb-data.git"
 
 [dependencies.clap]
-version = "3.0.0-beta.2"
-features = ["wrap_help"]
+version = "3.1.6"
+features = ["derive", "wrap_help"]
 
 [build-dependencies]
 csv = "1.1.6"

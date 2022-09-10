@@ -1,17 +1,22 @@
 mod pairs;
 
 use adb_data::AotAirport;
-use clap::AppSettings;
+use clap::Parser;
 use pairs::Pairs;
 use std::fmt::{self, Display};
 use std::process;
 
 include!(concat!(env!("OUT_DIR"), "/database.rs"));
 
-enum Cmd {
-    Distance(Vec<String>),
-    Find(String),
-    Listing(String),
+#[derive(Clone, Debug, Parser)]
+enum Args {
+    Dist {
+        #[clap(min_values(2))]
+        identifiers: Vec<String>,
+    },
+    Find { query: String },
+    Search { query: String },
+    Info { identifier: String },
 }
 
 struct AirportFormatter<'a>(&'a AotAirport);
@@ -22,7 +27,7 @@ impl Display for AirportFormatter<'_> {
         match airport.elevation_ft {
             Some(elevation) => write!(
                 f,
-                "{} {} ({} feet)\n  {}\n  {}\n  {}\n  {:?}",
+                "{} {} ({} feet)\n  {}\n  {}\n  {}\n  {}",
                 airport.ident,
                 airport.name,
                 elevation,
@@ -47,10 +52,11 @@ impl Display for AirportFormatter<'_> {
 }
 
 fn main() {
-    match read_options() {
-        Cmd::Distance(identifiers) => print_distance(&identifiers),
-        Cmd::Find(query) => print_find(&query),
-        Cmd::Listing(identifier) => print_listing(&identifier),
+    let args = Args::parse();
+    match args {
+        Args::Dist { identifiers } => print_distance(&identifiers),
+        Args::Find { query } | Args::Search { query } => print_find(&query),
+        Args::Info { identifier } => print_listing(&identifier),
     }
 }
 
@@ -165,73 +171,4 @@ fn find_by_identifier(identifier: &str) -> &'static AotAirport {
             process::exit(1);
         }
     }
-}
-
-fn read_options() -> Cmd {
-    use clap::{app_from_crate, Arg, ArgGroup};
-
-    let dist = app_from_crate!()
-        .name("dist")
-        .about("Calculate the distance between identifiers")
-        .arg(
-            Arg::new("identifiers")
-                .takes_value(true)
-                .multiple(true)
-                .min_values(2),
-        )
-        .arg(Arg::new("from_stdin").long("stdin"))
-        .group(
-            ArgGroup::new("ident_src")
-                .arg("identifiers")
-                .arg("from_stdin")
-                .required(true),
-        );
-
-    let find = app_from_crate!()
-        .name("find")
-        .about("Find an airport by name or town")
-        .arg(Arg::new("query").takes_value(true).required(true));
-
-    let options = app_from_crate!()
-        .setting(AppSettings::SubcommandsNegateReqs)
-        .arg(
-            Arg::new("identifier")
-                .takes_value(true)
-                .require_delimiter(true),
-        )
-        .subcommand(dist)
-        .subcommand(find)
-        .get_matches();
-
-    if let Some(options) = options.subcommand_matches("dist") {
-        return match options.values_of_t("identifiers") {
-            Ok(identifiers) => Cmd::Distance(identifiers),
-            Err(_) => {
-                let identifiers = try_read_from_stdin();
-                if identifiers.len() < 2 {
-                    eprintln!("Provide at least two identifiers");
-                    process::exit(1);
-                }
-                Cmd::Distance(identifiers)
-            }
-        };
-    }
-
-    if let Some(options) = options.subcommand_matches("find") {
-        return Cmd::Find(options.value_of_t_or_exit("query"));
-    }
-
-    Cmd::Listing(options.value_of_t_or_exit("identifier"))
-}
-
-fn try_read_from_stdin() -> Vec<String> {
-    use atty::Stream;
-    use std::io::{self, BufRead};
-
-    if atty::is(Stream::Stdin) {
-        return Vec::new();
-    }
-
-    let handle = io::stdin();
-    handle.lock().lines().filter_map(Result::ok).collect()
 }
