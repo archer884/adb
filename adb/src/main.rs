@@ -4,25 +4,33 @@ use std::process;
 mod pairs;
 
 use adb_data::AotAirport;
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use pairs::Pairs;
 
 include!(concat!(env!("OUT_DIR"), "/database.rs"));
 
-#[derive(Clone, Debug, Parser)]
-enum Args {
+#[derive(Debug, Parser)]
+#[clap(subcommand_negates_reqs(true))]
+struct Args {
+    #[clap(min_values(1))]
+    identifiers: Vec<String>,
+
+    #[clap(subcommand)]
+    command: Option<Command>, 
+}
+
+#[derive(Debug, Subcommand)]
+enum Command {
+    /// measure distance between airports
     Dist {
         #[clap(min_values(2))]
         identifiers: Vec<String>,
     },
-    Find {
-        query: String,
-    },
+
+    /// search airports
+    #[clap(alias = "find", alias = "s", alias = "f")]
     Search {
         query: String,
-    },
-    Info {
-        identifier: String,
     },
 }
 
@@ -59,11 +67,19 @@ impl Display for AirportFormatter<'_> {
 }
 
 fn main() {
-    let args = Args::parse();
-    match args {
-        Args::Dist { identifiers } => print_distance(&identifiers),
-        Args::Find { query } | Args::Search { query } => print_find(&query),
-        Args::Info { identifier } => print_listing(&identifier),
+    run(&Args::parse());
+}
+
+fn run(args: &Args) {
+    if let Some(command) = &args.command {
+        match command {
+            Command::Dist { identifiers } => print_distance(identifiers),
+            Command::Search { query } => print_search(query),
+        }
+    }
+
+    for identifier in &args.identifiers {
+        print_listing(identifier)
     }
 }
 
@@ -111,7 +127,7 @@ fn print_distance<T: AsRef<str>>(identifiers: &[T]) {
     );
 }
 
-fn print_find(query: &str) {
+fn print_search(query: &str) {
     let pattern = regex::RegexBuilder::new(&*format!(".*{}.*", query))
         .case_insensitive(true)
         .build();
@@ -152,9 +168,7 @@ fn select_candidates<'a>(
 fn format_candidates(candidates: impl Iterator<Item = (&'static str, &'static str, &'static str)>) {
     use std::io::{self, Write};
 
-    let handle = io::stdout();
-    let mut handle = handle.lock();
-
+    let mut handle = io::stdout().lock();
     for (identifier, region, name) in candidates {
         writeln!(handle, "{} {} {}", identifier, region, name).unwrap();
     }

@@ -11,7 +11,7 @@ fn main() {
     let airport_database = read_data();
     let mut buf = String::new();
 
-    writeln!(buf, include_str!("./resource/mod_head.txt")).unwrap();
+    writeln!(buf, include_str!("../resource/mod_head.txt")).unwrap();
     for item in airport_database {
         writeln!(
             buf,
@@ -61,10 +61,10 @@ fn read_data() -> Vec<Airport> {
     // any data we can't actually read. Additionally, in order to save on carbon
     // emissions, we provide only a faux csv for debug purposes.
     #[cfg(debug_assertions)]
-    static CSV_DATA: &str = include_str!("./resource/airport-codes-short.csv");
+    static CSV_DATA: &str = include_str!("../resource/airport-codes-short.csv");
 
     #[cfg(not(debug_assertions))]
-    static CSV_DATA: &str = include_str!("./resource/airport-codes.csv");
+    static CSV_DATA: &str = include_str!("../resource/airport-codes.csv");
 
     let data: Result<Vec<Airport>, _> = Reader::from_reader(Cursor::new(CSV_DATA))
         .deserialize()
