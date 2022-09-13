@@ -4,7 +4,7 @@ version = 3
 
 [[package]]
 name = "adb"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "adb-data",
  "atty",
@@ -15,7 +15,7 @@ dependencies = [
 
 [[package]]
 name = "adb-data"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "geoutils",
  "serde",

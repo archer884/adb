@@ -15,7 +15,7 @@ fn main() {
     for item in airport_database {
         writeln!(
             buf,
-            "AotAirport {{ \
+            "Airport {{ \
             ident: \"{}\", \
             kind: \"{}\", \
             name: \"{}\", \
