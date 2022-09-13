@@ -1,4 +1,4 @@
-use adb_data::Airport;
+use adb_data::ParsedAirport;
 use std::env;
 use std::fmt::Write;
 use std::fs;
@@ -53,7 +53,7 @@ fn main() {
     println!("cargo:rerun-if-changed=resource/mod_head.txt");
 }
 
-fn read_data() -> Vec<Airport> {
+fn read_data() -> Vec<ParsedAirport> {
     use csv::Reader;
     use std::io::Cursor;
 
@@ -66,7 +66,7 @@ fn read_data() -> Vec<Airport> {
     #[cfg(not(debug_assertions))]
     static CSV_DATA: &str = include_str!("../resource/airport-codes.csv");
 
-    let data: Result<Vec<Airport>, _> = Reader::from_reader(Cursor::new(CSV_DATA))
+    let data: Result<Vec<ParsedAirport>, _> = Reader::from_reader(Cursor::new(CSV_DATA))
         .deserialize()
         .collect();
     let mut data = data.unwrap();

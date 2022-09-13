@@ -5,7 +5,7 @@ use std::{str::FromStr, fmt::Display};
 use serde::{Deserialize, Deserializer};
 
 #[derive(Clone, Debug)]
-pub struct Airport {
+pub struct ParsedAirport {
     pub ident: String,
     pub kind: String,
     pub name: String,
@@ -21,7 +21,7 @@ pub struct Airport {
 }
 
 #[derive(Debug)]
-pub struct AotAirport {
+pub struct Airport {
     pub ident: &'static str,
     pub kind: &'static str,
     pub name: &'static str,
@@ -55,7 +55,7 @@ struct AirportTemplate {
 }
 
 #[cfg(feature = "aotload")]
-impl<'de> Deserialize<'de> for Airport {
+impl<'de> Deserialize<'de> for ParsedAirport {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -75,7 +75,7 @@ impl<'de> Deserialize<'de> for Airport {
             coordinates,
         } = AirportTemplate::deserialize(deserializer)?;
 
-        Ok(Airport {
+        Ok(ParsedAirport {
             ident,
             kind,
             name,

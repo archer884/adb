@@ -3,7 +3,7 @@ use std::process;
 
 mod pairs;
 
-use adb_data::AotAirport;
+use adb_data::Airport;
 use clap::{Parser, Subcommand};
 use pairs::Pairs;
 
@@ -34,7 +34,7 @@ enum Command {
     },
 }
 
-struct AirportFormatter<'a>(&'a AotAirport);
+struct AirportFormatter<'a>(&'a Airport);
 
 impl Display for AirportFormatter<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -157,7 +157,7 @@ fn print_search(query: &str) {
 }
 
 fn select_candidates<'a>(
-    filter: impl Fn(&AotAirport) -> bool + 'a,
+    filter: impl Fn(&Airport) -> bool + 'a,
 ) -> impl Iterator<Item = (&'static str, &'static str, &'static str)> + 'a {
     AIRPORTS
         .iter()
@@ -178,7 +178,7 @@ fn print_listing(identifier: &str) {
     println!("{}", AirportFormatter(find_by_identifier(identifier)));
 }
 
-fn find_by_identifier(identifier: &str) -> &'static AotAirport {
+fn find_by_identifier(identifier: &str) -> &'static Airport {
     let identifier = identifier.to_ascii_uppercase();
     let result = AIRPORTS
         .binary_search_by(|probe| probe.ident.cmp(&identifier))
