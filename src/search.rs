@@ -33,7 +33,7 @@ pub fn initialize(force: bool) -> tantivy::Result<(Index, Fields)> {
         identifier: builder.add_text_field("identifier", schema::TEXT),
         description: builder.add_text_field("description", schema::TEXT),
         facet: builder.add_facet_field("facet", schema::INDEXED | schema::STORED),
-        object: builder.add_text_field("data", schema::STORED),
+        object: builder.add_text_field("object", schema::STORED),
     };
     let schema = builder.build();
     let mmap_dir = MmapDirectory::open(&path)?;
