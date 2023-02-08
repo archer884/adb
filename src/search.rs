@@ -22,7 +22,7 @@ pub struct Fields {
 
 pub fn initialize(force: bool) -> tantivy::Result<(Index, Fields)> {
     let dirs = ProjectDirs::from("org", "Hack Commons", "airdatabase").unwrap();
-    let path = dirs.data_dir().join("airdata-index");
+    let path = dirs.data_dir();
 
     if !path.exists() {
         fs::create_dir_all(&path)?;
