@@ -1,11 +1,10 @@
+use std::{fmt, str::FromStr};
+
 use geoutils::Location;
-use std::{str::FromStr, fmt::Display};
+use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "aotload")]
-use serde::{Deserialize, Deserializer};
-
-#[derive(Clone, Debug)]
-pub struct ParsedAirport {
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Airport {
     pub ident: String,
     pub kind: String,
     pub name: String,
@@ -20,25 +19,71 @@ pub struct ParsedAirport {
     pub coordinates: Coords,
 }
 
-#[derive(Debug)]
-pub struct Airport {
-    pub ident: &'static str,
-    pub kind: &'static str,
-    pub name: &'static str,
-    pub elevation_ft: Option<i32>,
-    pub continent: &'static str,
-    pub iso_country: &'static str,
-    pub iso_region: &'static str,
-    pub municipality: &'static str,
-    pub gps_code: &'static str,
-    pub iata_code: &'static str,
-    pub local_code: &'static str,
-    pub coordinates: Coords,
+impl Airport {
+    pub fn from_template(template: AirportTemplate) -> Option<Self> {
+        let AirportTemplate {
+            ident,
+            kind,
+            name,
+            elevation_ft,
+            continent,
+            iso_country,
+            iso_region,
+            municipality,
+            gps_code,
+            iata_code,
+            local_code,
+            coordinates,
+        } = template;
+
+        Some(Airport {
+            ident,
+            kind,
+            name,
+            elevation_ft,
+            continent,
+            iso_country,
+            iso_region,
+            municipality,
+            gps_code,
+            iata_code,
+            local_code,
+            coordinates: coordinates.parse().ok()?,
+        })
+    }
 }
 
-#[cfg(feature = "aotload")]
+impl fmt::Display for Airport {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.elevation_ft {
+            Some(elevation) => write!(
+                f,
+                "{} {} ({} feet)\n  {}\n  {}\n  {}\n  {}",
+                self.ident,
+                self.name,
+                elevation,
+                self.kind,
+                self.municipality,
+                self.iso_region,
+                self.coordinates
+            ),
+
+            None => write!(
+                f,
+                "{} {}\n  {}\n  {}\n  {}\n  {}",
+                self.ident,
+                self.name,
+                self.kind,
+                self.municipality,
+                self.iso_region,
+                self.coordinates
+            ),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Deserialize)]
-struct AirportTemplate {
+pub struct AirportTemplate {
     ident: String,
     #[serde(rename = "type")]
     kind: String,
@@ -54,45 +99,7 @@ struct AirportTemplate {
     coordinates: String,
 }
 
-#[cfg(feature = "aotload")]
-impl<'de> Deserialize<'de> for ParsedAirport {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let AirportTemplate {
-            ident,
-            kind,
-            name,
-            elevation_ft,
-            continent,
-            iso_country,
-            iso_region,
-            municipality,
-            gps_code,
-            iata_code,
-            local_code,
-            coordinates,
-        } = AirportTemplate::deserialize(deserializer)?;
-
-        Ok(ParsedAirport {
-            ident,
-            kind,
-            name,
-            elevation_ft,
-            continent,
-            iso_country,
-            iso_region,
-            municipality,
-            gps_code,
-            iata_code,
-            local_code,
-            coordinates: coordinates.parse().map_err(serde::de::Error::custom)?,
-        })
-    }
-}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Coords {
     pub latitude: f64,
     pub longitude: f64,
@@ -108,14 +115,14 @@ impl Coords {
     }
 }
 
-impl Display for Coords {
+impl fmt::Display for Coords {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let n = if self.latitude >= 0.0 { "N" } else { "S" };
         let e = if self.longitude >= 0.0 { "E" } else { "W" };
-        
+
         let lat = self.latitude.abs();
         let lon = self.longitude.abs();
-        
+
         write!(f, "{lat:.04}°{n} {lon:.04}°{e}")
     }
 }

@@ -1,3 +1,0 @@
-use adb_data::Coords;
-
-static AIRPORTS: &[Airport] = &[
