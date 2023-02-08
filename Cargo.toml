@@ -1,6 +1,6 @@
 [package]
 name = "adb"
-version = "0.2.2"
+version = "0.3.0"
 edition = "2021"
 authors = ["J/A <archer884@gmail.com>"]
 description = "An airport code database and nav assist"
