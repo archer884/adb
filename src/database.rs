@@ -30,7 +30,7 @@ impl Database {
 
     pub fn search(&self, query: &str) -> tantivy::Result<Vec<Airport>> {
         let query =
-            QueryParser::for_index(&self.index, vec![self.fields.facet]).parse_query(query)?;
+            QueryParser::for_index(&self.index, vec![self.fields.description]).parse_query(query)?;
 
         self.materialize_query(&query, 25)
     }
