@@ -54,7 +54,7 @@ fn run(args: &Args) -> tantivy::Result<()> {
                 let mut identifiers = vec![origin];
                 identifiers.extend(waypoints);
                 print_distance(&identifiers)?;
-            },
+            }
             Command::Search { query } => print_search(query)?,
             Command::Update => {
                 search::initialize(true)?;
@@ -116,7 +116,7 @@ fn print_distance<T: AsRef<str>>(identifiers: &[T]) -> tantivy::Result<()> {
             .meters();
 
         let formatted_distance = format!("{:.01}", leg / METERS_PER_NAUTICAL_MILE);
-        dist_column_width = std::cmp::max(dist_column_width, formatted_distance.len());
+        dist_column_width = formatted_distance.len().max(dist_column_width);
         preformat_records.push((&a.ident, &b.ident, formatted_distance));
         dist += leg;
     }

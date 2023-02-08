@@ -25,7 +25,7 @@ pub fn initialize(force: bool) -> tantivy::Result<(Index, Fields)> {
     let path = dirs.data_dir();
 
     if !path.exists() {
-        fs::create_dir_all(&path)?;
+        fs::create_dir_all(path)?;
     }
 
     let mut builder = Schema::builder();
@@ -36,11 +36,17 @@ pub fn initialize(force: bool) -> tantivy::Result<(Index, Fields)> {
         object: builder.add_text_field("object", schema::STORED),
     };
     let schema = builder.build();
-    let mmap_dir = MmapDirectory::open(&path)?;
+    let mmap_dir = MmapDirectory::open(path)?;
 
-    if force || !Index::exists(&mmap_dir)? {
+    if force && Index::exists(&mmap_dir)? {
+        fs::remove_dir_all(path)?;
+        fs::create_dir_all(path)?;
+    }
+
+    if !Index::exists(&mmap_dir)? {
         const MEGABYTE: usize = 0x100000;
         const ARENA_SIZE: usize = MEGABYTE * 1000;
+
 
         let index = Index::create_in_dir(path, schema)?;
         write_index(&fields, &mut index.writer(ARENA_SIZE)?)?;

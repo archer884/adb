@@ -132,16 +132,16 @@ impl FromStr for Coords {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut parts = s.split(',').map(|x| x.trim());
-        let latitude = parts
-            .next()
-            .ok_or("Missing latitude")?
-            .parse()
-            .map_err(|_| "Bad latitude")?;
         let longitude = parts
             .next()
             .ok_or("Missing longitude")?
             .parse()
             .map_err(|_| "Bad longitude")?;
+        let latitude = parts
+            .next()
+            .ok_or("Missing latitude")?
+            .parse()
+            .map_err(|_| "Bad latitude")?;
         Ok(Coords {
             latitude,
             longitude,
