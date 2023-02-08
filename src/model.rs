@@ -1,4 +1,4 @@
-use std::{fmt, str::FromStr};
+use std::fmt;
 
 use geoutils::Location;
 use serde::{Deserialize, Serialize};
@@ -33,7 +33,8 @@ impl Airport {
             gps_code,
             iata_code,
             local_code,
-            coordinates,
+            latitude_deg,
+            longitude_deg,
         } = template;
 
         Some(Airport {
@@ -48,7 +49,10 @@ impl Airport {
             gps_code,
             iata_code,
             local_code,
-            coordinates: coordinates.parse().ok()?,
+            coordinates: Coords {
+                latitude: latitude_deg,
+                longitude: longitude_deg,
+            },
         })
     }
 }
@@ -96,7 +100,8 @@ pub struct AirportTemplate {
     gps_code: String,
     iata_code: String,
     local_code: String,
-    coordinates: String,
+    latitude_deg: f64,
+    longitude_deg: f64,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -124,27 +129,5 @@ impl fmt::Display for Coords {
         let lon = self.longitude.abs();
 
         write!(f, "{lat:.04}°{n} {lon:.04}°{e}")
-    }
-}
-
-impl FromStr for Coords {
-    type Err = &'static str;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut parts = s.split(',').map(|x| x.trim());
-        let longitude = parts
-            .next()
-            .ok_or("Missing longitude")?
-            .parse()
-            .map_err(|_| "Bad longitude")?;
-        let latitude = parts
-            .next()
-            .ok_or("Missing latitude")?
-            .parse()
-            .map_err(|_| "Bad latitude")?;
-        Ok(Coords {
-            latitude,
-            longitude,
-        })
     }
 }

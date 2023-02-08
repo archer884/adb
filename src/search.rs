@@ -11,7 +11,7 @@ use tantivy::{
 
 use crate::model::Airport;
 
-static RAW: &str = include_str!("../resource/airport-codes.csv");
+static RAW: &str = include_str!("../resource/airports.csv");
 
 pub struct Fields {
     pub identifier: Field,
@@ -46,7 +46,6 @@ pub fn initialize(force: bool) -> tantivy::Result<(Index, Fields)> {
     if !Index::exists(&mmap_dir)? {
         const MEGABYTE: usize = 0x100000;
         const ARENA_SIZE: usize = MEGABYTE * 1000;
-
 
         let index = Index::create_in_dir(path, schema)?;
         write_index(&fields, &mut index.writer(ARENA_SIZE)?)?;
