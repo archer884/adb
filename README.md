@@ -1,3 +1,3 @@
 # Airport database
 
-Data from: https://datahub.io/core/airport-codes
+Data from: https://github.com/davidmegginson/ourairports-data
