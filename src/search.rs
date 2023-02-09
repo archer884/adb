@@ -1,7 +1,8 @@
-use std::{fs, io::Cursor};
+use std::{fs, io::Read};
 
 use csv::Reader;
 use directories::ProjectDirs;
+use libflate::gzip::Decoder;
 use tantivy::{
     directory::MmapDirectory,
     doc,
@@ -11,7 +12,7 @@ use tantivy::{
 
 use crate::model::Airport;
 
-static RAW: &str = include_str!("../resource/airports.csv");
+static SOURCE_DATA: &[u8] = include_bytes!("../resource/airports.csv.gz");
 
 pub struct Fields {
     pub identifier: Field,
@@ -21,6 +22,17 @@ pub struct Fields {
 }
 
 pub fn initialize(force: bool) -> tantivy::Result<(Index, Fields)> {
+    let mut decoder = Decoder::new(SOURCE_DATA)?;
+    let mut result = Vec::new();
+    let mut buf = String::new();
+
+    decoder.read_to_end(&mut result)?;
+    (&mut &*result).read_to_string(&mut buf)?;
+
+    initialize_with_source(&buf, force)
+}
+
+pub fn initialize_with_source(source: &str, force: bool) -> tantivy::Result<(Index, Fields)> {
     let dirs = ProjectDirs::from("org", "Hack Commons", "airdatabase").unwrap();
     let path = dirs.data_dir();
 
@@ -48,15 +60,16 @@ pub fn initialize(force: bool) -> tantivy::Result<(Index, Fields)> {
         const ARENA_SIZE: usize = MEGABYTE * 1000;
 
         let index = Index::create_in_dir(path, schema)?;
-        write_index(&fields, &mut index.writer(ARENA_SIZE)?)?;
+        write_index(source, &fields, &mut index.writer(ARENA_SIZE)?)?;
         Ok((index, fields))
     } else {
         Ok((Index::open(mmap_dir)?, fields))
     }
 }
 
-fn write_index(fields: &Fields, writer: &mut IndexWriter) -> tantivy::Result<()> {
-    let mut reader = Reader::from_reader(Cursor::new(RAW));
+fn write_index(source: &str, fields: &Fields, writer: &mut IndexWriter) -> tantivy::Result<()> {
+    let mut source = source.as_bytes();
+    let mut reader = Reader::from_reader(&mut source);
 
     for airport in reader.deserialize() {
         let airport = Airport::from_template(airport.unwrap()).unwrap();

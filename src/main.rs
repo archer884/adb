@@ -1,4 +1,4 @@
-use std::process;
+use std::{fs, process};
 
 mod database;
 mod model;
@@ -35,7 +35,16 @@ enum Command {
     Search { query: String },
 
     /// update database
-    Update,
+    ///
+    /// Running this command with no argument will rewrite the database using
+    /// adb's internal data. There's no need to do this if you haven't updated
+    /// adb itself.
+    Update {
+        /// path to database source file
+        ///
+        /// See: https://github.com/davidmegginson/ourairports-data
+        path: Option<String>,
+    },
 }
 
 fn main() {
@@ -56,10 +65,17 @@ fn run(args: &Args) -> tantivy::Result<()> {
                 print_distance(&identifiers)?;
             }
             Command::Search { query } => print_search(query)?,
-            Command::Update => {
-                search::initialize(true)?;
-                return Ok(());
-            }
+            Command::Update { path } => match path {
+                Some(path) => {
+                    let source = fs::read_to_string(path)?;
+                    search::initialize_with_source(&source, true)?;
+                    return Ok(());
+                }
+                None => {
+                    search::initialize(true)?;
+                    return Ok(());
+                }
+            },
         }
     }
 
