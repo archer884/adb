@@ -1,16 +1,20 @@
 use std::{fs, process};
 
 mod database;
+mod error;
 mod model;
 mod pairs;
 mod search;
 
 use clap::Parser;
 use database::Database;
+use error::Error;
 use hashbrown::HashMap;
 use pairs::Pairs;
 
 use crate::model::Airport;
+
+type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[derive(Debug, Parser)]
 #[command(subcommand_negates_reqs(true))]
@@ -54,7 +58,7 @@ fn main() {
     }
 }
 
-fn run(args: &Args) -> tantivy::Result<()> {
+fn run(args: &Args) -> Result<()> {
     if let Some(command) = &args.command {
         match command {
             Command::Dist { origin, waypoints } => {
@@ -95,7 +99,7 @@ fn run(args: &Args) -> tantivy::Result<()> {
     Ok(())
 }
 
-fn print_distance<T: AsRef<str>>(identifiers: &[T]) -> tantivy::Result<()> {
+fn print_distance<T: AsRef<str>>(identifiers: &[T]) -> Result<()> {
     const METERS_PER_NAUTICAL_MILE: f64 = 1852.001;
 
     let db = Database::initialize()?;
@@ -112,18 +116,23 @@ fn print_distance<T: AsRef<str>>(identifiers: &[T]) -> tantivy::Result<()> {
         .collect();
     let cache = cache?;
 
+    fn get_by_ident<'a>(ident: &str, cache: &'a HashMap<&str, Airport>) -> Result<&'a Airport> {
+        cache
+            .get(ident)
+            .ok_or_else(|| Error::from_identifier(ident))
+    }
+
     let airport_pairs = identifiers.pairs().map(|(a, b)| {
-        (
-            cache.get(a.as_ref()).unwrap(),
-            cache.get(b.as_ref()).unwrap(),
-        )
+        get_by_ident(a.as_ref(), &cache)
+            .and_then(|a| get_by_ident(b.as_ref(), &cache).map(|b| (a, b)))
     });
 
     let mut dist = 0.0;
     let mut preformat_records = Vec::new();
     let mut dist_column_width = 0;
 
-    for (a, b) in airport_pairs {
+    for pair in airport_pairs {
+        let (a, b) = pair?;
         let leg = a
             .coordinates
             .location()

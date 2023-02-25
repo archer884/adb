@@ -4,7 +4,7 @@ version = 3
 
 [[package]]
 name = "adb"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "atty",
  "clap",
