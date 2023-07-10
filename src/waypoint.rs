@@ -1,5 +1,7 @@
 use std::fmt;
 
+use geoutils::Distance;
+
 use crate::model::{Airport, Coords};
 
 // Practically all instances of Waypoint will be the Airport variant.
@@ -26,7 +28,17 @@ impl Waypoint {
         WaypointName { waypoint: self }
     }
 
-    pub fn coordinates(&self) -> Coords {
+    pub fn distance_to(&self, other: &Waypoint) -> Distance {
+        let left = self.coordinates().location();
+        let right = other.coordinates().location();
+
+        // I have never, ever, ever seen Vicenty's formula fail to yield a result, but IF IT DOES
+        // we'll fall back to haversine distance.
+        left.distance_to(&right)
+            .unwrap_or_else(|_| left.haversine_distance_to(&right))
+    }
+
+    fn coordinates(&self) -> Coords {
         match self {
             Waypoint::Airport(airport) => airport.coordinates,
             Waypoint::Coords(coordinates) => *coordinates,

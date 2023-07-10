@@ -132,12 +132,7 @@ fn print_distance<T: AsRef<str>>(origin: &T, waypoints: &[T]) -> Result<()> {
 
     for pair in airport_pairs {
         let (left, right) = pair?;
-        let leg = left
-            .coordinates()
-            .location()
-            .distance_to(&right.coordinates().location())
-            .unwrap()
-            .meters();
+        let leg = left.distance_to(right).meters();
 
         let formatted_distance = format!("{:.01}", leg / METERS_PER_NAUTICAL_MILE);
         dist_column_width = formatted_distance.len().max(dist_column_width);
