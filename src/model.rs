@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, num::ParseFloatError, str::FromStr};
 
 use geoutils::Location;
 use serde::{Deserialize, Serialize};
@@ -104,7 +104,7 @@ pub struct AirportTemplate {
     longitude_deg: f64,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct Coords {
     pub latitude: f64,
     pub longitude: f64,
@@ -129,5 +129,50 @@ impl fmt::Display for Coords {
         let lon = self.longitude.abs();
 
         write!(f, "{lat:.04}°{n} {lon:.04}°{e}")
+    }
+}
+
+impl FromStr for Coords {
+    type Err = ParseCoordsError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut values = s.split_ascii_whitespace();
+        let latitude: f64 = values
+            .next()
+            .ok_or(ParseCoordsError::MissingComponent)?
+            .parse()?;
+        let longitude: f64 = values
+            .next()
+            .ok_or(ParseCoordsError::MissingComponent)?
+            .parse()?;
+
+        if values.next().is_some() {
+            return Err(ParseCoordsError::TooManyComponents);
+        }
+
+        Ok(Coords {
+            latitude,
+            longitude,
+        })
+    }
+}
+
+pub enum ParseCoordsError {
+    MissingComponent,
+    TooManyComponents,
+    Float(ParseFloatError),
+}
+
+impl From<ParseFloatError> for ParseCoordsError {
+    fn from(value: ParseFloatError) -> Self {
+        ParseCoordsError::Float(value)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn can_parse_coordinates() {
+        todo!()
     }
 }

@@ -1,10 +1,11 @@
-use std::{fs, process};
+use std::{fs, iter, process};
 
 mod database;
 mod error;
 mod model;
 mod pairs;
 mod search;
+mod waypoint;
 
 use clap::Parser;
 use database::Database;
@@ -12,7 +13,7 @@ use error::Error;
 use hashbrown::HashMap;
 use pairs::Pairs;
 
-use crate::model::Airport;
+use crate::{model::Coords, waypoint::Waypoint};
 
 type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -62,11 +63,7 @@ fn run(args: &Args) -> Result<()> {
     if let Some(command) = &args.command {
         match command {
             Command::Dist { origin, waypoints } => {
-                // This is a filthy, filthy hack and we should probably just change the contract
-                // for this function instead.
-                let mut identifiers = vec![origin];
-                identifiers.extend(waypoints);
-                print_distance(&identifiers)?;
+                print_distance(origin, waypoints)?;
             }
             Command::Search { query } => print_search(query)?,
             Command::Update { path } => match path {
@@ -99,30 +96,32 @@ fn run(args: &Args) -> Result<()> {
     Ok(())
 }
 
-fn print_distance<T: AsRef<str>>(identifiers: &[T]) -> Result<()> {
+fn print_distance<T: AsRef<str>>(origin: &T, waypoints: &[T]) -> Result<()> {
     const METERS_PER_NAUTICAL_MILE: f64 = 1852.001;
 
     let db = Database::initialize()?;
-    let cache: tantivy::Result<HashMap<_, Airport>> = identifiers
-        .iter()
-        .map(|identifier| identifier.as_ref())
+    let cache: HashMap<_, Waypoint> = iter::once(origin)
+        .chain(waypoints)
+        .map(|text| text.as_ref())
         .filter_map(|identifier| {
-            Some(
-                db.by_identifier(identifier)
-                    .transpose()?
-                    .map(|airport| (identifier, airport)),
-            )
+            if let Some(waypoint) = db.by_identifier(identifier).ok().flatten() {
+                return Some((identifier, waypoint.into()));
+            }
+
+            identifier
+                .parse()
+                .map(|coords: Coords| (identifier, Waypoint::from(coords)))
+                .ok()
         })
         .collect();
-    let cache = cache?;
 
-    fn get_by_ident<'a>(ident: &str, cache: &'a HashMap<&str, Airport>) -> Result<&'a Airport> {
+    fn get_by_ident<'a>(ident: &str, cache: &'a HashMap<&str, Waypoint>) -> Result<&'a Waypoint> {
         cache
             .get(ident)
             .ok_or_else(|| Error::from_identifier(ident))
     }
 
-    let airport_pairs = identifiers.pairs().map(|(a, b)| {
+    let airport_pairs = iter::once(origin).chain(waypoints).pairs().map(|(a, b)| {
         get_by_ident(a.as_ref(), &cache)
             .and_then(|a| get_by_ident(b.as_ref(), &cache).map(|b| (a, b)))
     });
@@ -132,17 +131,17 @@ fn print_distance<T: AsRef<str>>(identifiers: &[T]) -> Result<()> {
     let mut dist_column_width = 0;
 
     for pair in airport_pairs {
-        let (a, b) = pair?;
-        let leg = a
-            .coordinates
+        let (left, right) = pair?;
+        let leg = left
+            .coordinates()
             .location()
-            .distance_to(&b.coordinates.location())
+            .distance_to(&right.coordinates().location())
             .unwrap()
             .meters();
 
         let formatted_distance = format!("{:.01}", leg / METERS_PER_NAUTICAL_MILE);
         dist_column_width = formatted_distance.len().max(dist_column_width);
-        preformat_records.push((&a.ident, &b.ident, formatted_distance));
+        preformat_records.push((left.name(), right.name(), formatted_distance));
         dist += leg;
     }
 

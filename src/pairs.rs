@@ -1,35 +1,31 @@
-use std::ops::Range;
-
-pub trait Pairs<'a, T> {
-    fn pairs(self) -> PairsIter<'a, T>;
+pub trait Pairs: Iterator + Sized {
+    fn pairs(self) -> PairsIter<Self>;
 }
 
-impl<'a, T> Pairs<'a, T> for &'a [T] {
-    fn pairs(self) -> PairsIter<'a, T> {
-        PairsIter::new(self)
-    }
+pub struct PairsIter<I: Iterator> {
+    left: Option<I::Item>,
+    source: I,
 }
 
-pub struct PairsIter<'a, T> {
-    cursor: Range<usize>,
-    source: &'a [T],
-}
-
-impl<'a, T> PairsIter<'a, T> {
-    fn new(source: &'a [T]) -> Self {
-        Self {
-            cursor: 0..(source.len() - 1),
-            source,
-        }
-    }
-}
-
-impl<'a, T> Iterator for PairsIter<'a, T> {
-    type Item = (&'a T, &'a T);
+impl<I: Iterator> Iterator for PairsIter<I>
+where
+    I::Item: Copy,
+{
+    type Item = (I::Item, I::Item);
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.cursor
-            .next()
-            .map(|idx| (&self.source[idx], &self.source[idx + 1]))
+        let left = self.left.take()?;
+        let right = self.source.next()?;
+        self.left = Some(right);
+        Some((left, right))
+    }
+}
+
+impl<I: Iterator> Pairs for I {
+    fn pairs(mut self) -> PairsIter<Self> {
+        PairsIter {
+            left: self.next(),
+            source: self,
+        }
     }
 }
