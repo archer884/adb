@@ -1,8 +1,8 @@
-use std::{fs, io::Read};
+use std::{fs, io};
 
 use csv::Reader;
 use directories::ProjectDirs;
-use libflate::gzip::Decoder;
+use hashbrown::HashMap;
 use tantivy::{
     directory::MmapDirectory,
     doc,
@@ -10,9 +10,10 @@ use tantivy::{
     Index, IndexWriter,
 };
 
-use crate::model::Airport;
+use crate::model::{Airport, RunwayTemplate, Runway};
 
-static SOURCE_DATA: &[u8] = include_bytes!("../resource/airports.csv.gz");
+static AIRPORTS: &str = include_str!("../resource/airports.csv");
+static RUNWAYS: &str = include_str!("../resource/runways.csv");
 
 pub struct Fields {
     pub identifier: Field,
@@ -22,17 +23,10 @@ pub struct Fields {
 }
 
 pub fn initialize(force: bool) -> tantivy::Result<(Index, Fields)> {
-    let mut decoder = Decoder::new(SOURCE_DATA)?;
-    let mut result = Vec::new();
-    let mut buf = String::new();
-
-    decoder.read_to_end(&mut result)?;
-    (&mut &*result).read_to_string(&mut buf)?;
-
-    initialize_with_source(&buf, force)
+    initialize_with_source(AIRPORTS, RUNWAYS, force)
 }
 
-pub fn initialize_with_source(source: &str, force: bool) -> tantivy::Result<(Index, Fields)> {
+pub fn initialize_with_source(airports: &str, runways: &str, force: bool) -> tantivy::Result<(Index, Fields)> {
     let dirs = ProjectDirs::from("org", "Hack Commons", "airdatabase").unwrap();
     let path = dirs.data_dir();
 
@@ -60,24 +54,32 @@ pub fn initialize_with_source(source: &str, force: bool) -> tantivy::Result<(Ind
         const ARENA_SIZE: usize = MEGABYTE * 1000;
 
         let index = Index::create_in_dir(path, schema)?;
-        write_index(source, &fields, &mut index.writer(ARENA_SIZE)?)?;
+        write_index(airports, runways, &fields, &mut index.writer(ARENA_SIZE)?)?;
         Ok((index, fields))
     } else {
         Ok((Index::open(mmap_dir)?, fields))
     }
 }
 
-fn write_index(source: &str, fields: &Fields, writer: &mut IndexWriter) -> tantivy::Result<()> {
-    let mut source = source.as_bytes();
+fn write_index(airports: &str, runways: &str, fields: &Fields, writer: &mut IndexWriter) -> tantivy::Result<()> {
+    let mut source = airports.as_bytes();
     let mut reader = Reader::from_reader(&mut source);
 
+    let mut runways = load_runways(runways).unwrap();
+
     for airport in reader.deserialize() {
-        let airport = Airport::from_template(airport.unwrap()).unwrap();
+        let mut airport = Airport::from_template(airport.unwrap()).unwrap();
         let ident = &airport.ident;
         let name = &airport.name;
         let iso_country = &airport.iso_country;
         let iso_region = &airport.iso_region;
         let municipality = &airport.municipality;
+
+        // For my next trick, when available, I'm going to pull runways for each airport.
+        // ...Since I'm doing it this way, ICAO identifiers better be unique.
+        if let Some(runways) = runways.remove(&airport.ident) {
+            airport.runways = runways;
+        }
 
         writer.add_document(doc!(
             fields.identifier => ident.to_string(),
@@ -89,4 +91,17 @@ fn write_index(source: &str, fields: &Fields, writer: &mut IndexWriter) -> tanti
 
     writer.commit()?;
     Ok(())
+}
+
+fn load_runways(runways: &str) -> io::Result<HashMap<String, Vec<Runway>>> {
+    let mut source = runways.as_bytes();
+    let mut reader = Reader::from_reader(&mut source);
+    let mut map: HashMap<_, Vec<_>> = HashMap::new();
+
+    for runway in reader.deserialize::<RunwayTemplate>() {
+        let runway: Runway = runway?.into();
+        map.entry(runway.airport.clone()).or_default().push(runway);
+    }
+
+    Ok(map)
 }

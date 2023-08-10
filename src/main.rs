@@ -1,4 +1,4 @@
-use std::{fs, iter, process};
+use std::{iter, process};
 
 mod database;
 mod error;
@@ -40,16 +40,7 @@ enum Command {
     Search { query: String },
 
     /// update database
-    ///
-    /// Running this command with no argument will rewrite the database using
-    /// adb's internal data. There's no need to do this if you haven't updated
-    /// adb itself.
-    Update {
-        /// path to database source file
-        ///
-        /// See: https://github.com/davidmegginson/ourairports-data
-        path: Option<String>,
-    },
+    Update,
 }
 
 fn main() {
@@ -66,22 +57,14 @@ fn run(args: &Args) -> Result<()> {
                 print_distance(origin, waypoints)?;
             }
             Command::Search { query } => print_search(query)?,
-            Command::Update { path } => match path {
-                Some(path) => {
-                    let source = fs::read_to_string(path)?;
-                    search::initialize_with_source(&source, true)?;
-                    return Ok(());
-                }
-                None => {
-                    search::initialize(true)?;
-                    return Ok(());
-                }
+            Command::Update => {
+                search::initialize(true)?;
             },
         }
+        return Ok(());
     }
 
     let db = Database::initialize()?;
-
     for identifier in &args.identifiers {
         match db.by_identifier(identifier)? {
             Some(airport) => {
