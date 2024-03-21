@@ -10,7 +10,7 @@ use tantivy::{
     Index, IndexWriter,
 };
 
-use crate::model::{Airport, RunwayTemplate, Runway};
+use crate::model::{Airport, Runway, RunwayTemplate};
 
 static AIRPORTS: &str = include_str!("../resource/airports.csv");
 static RUNWAYS: &str = include_str!("../resource/runways.csv");
@@ -26,7 +26,11 @@ pub fn initialize(force: bool) -> tantivy::Result<(Index, Fields)> {
     initialize_with_source(AIRPORTS, RUNWAYS, force)
 }
 
-pub fn initialize_with_source(airports: &str, runways: &str, force: bool) -> tantivy::Result<(Index, Fields)> {
+pub fn initialize_with_source(
+    airports: &str,
+    runways: &str,
+    force: bool,
+) -> tantivy::Result<(Index, Fields)> {
     let dirs = ProjectDirs::from("org", "Hack Commons", "airdatabase").unwrap();
     let path = dirs.data_dir();
 
@@ -61,7 +65,12 @@ pub fn initialize_with_source(airports: &str, runways: &str, force: bool) -> tan
     }
 }
 
-fn write_index(airports: &str, runways: &str, fields: &Fields, writer: &mut IndexWriter) -> tantivy::Result<()> {
+fn write_index(
+    airports: &str,
+    runways: &str,
+    fields: &Fields,
+    writer: &mut IndexWriter,
+) -> tantivy::Result<()> {
     let mut source = airports.as_bytes();
     let mut reader = Reader::from_reader(&mut source);
 

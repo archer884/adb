@@ -1,4 +1,4 @@
-use std::{fmt, num::ParseFloatError, str::FromStr, borrow::Cow};
+use std::{borrow::Cow, fmt, num::ParseFloatError, str::FromStr};
 
 use geoutils::Location;
 use serde::{Deserialize, Serialize};
@@ -76,11 +76,7 @@ impl fmt::Display for Airport {
             None => write!(
                 f,
                 "{} {}\n  {}\n  {}\n  {}",
-                self.ident,
-                self.name,
-                self.municipality,
-                self.iso_region,
-                self.coordinates
+                self.ident, self.name, self.municipality, self.iso_region, self.coordinates
             )?,
         };
 
@@ -88,10 +84,11 @@ impl fmt::Display for Airport {
             f.write_str("\n\nRunways:\n")?;
             for rwy in &self.runways {
                 let name = &rwy.name;
-                let length = rwy.length
+                let length = rwy
+                    .length
                     .map(|length| Cow::from(length.to_string() + "ft"))
                     .unwrap_or_else(|| Cow::from("unknown"));
-            
+
                 if rwy.is_lighted {
                     writeln!(f, "  {name} {length:>8}  +L")?;
                 } else {
@@ -193,7 +190,7 @@ pub struct RunwayTemplate {
     length_ft: Option<i32>,
     lighted: i8,
     closed: i8,
-    
+
     /// runway identifier, e.g. 34L, where le and he are inverse
     le_ident: String,
 
@@ -212,8 +209,15 @@ pub struct Runway {
 
 impl From<RunwayTemplate> for Runway {
     fn from(template: RunwayTemplate) -> Self {
-        let RunwayTemplate { airport_ident, length_ft, lighted, closed, le_ident, he_ident } = template;
-        
+        let RunwayTemplate {
+            airport_ident,
+            length_ft,
+            lighted,
+            closed,
+            le_ident,
+            he_ident,
+        } = template;
+
         Self {
             airport: airport_ident,
             name: format!("{le_ident}/{he_ident}"),

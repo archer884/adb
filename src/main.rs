@@ -59,7 +59,7 @@ fn run(args: &Args) -> Result<()> {
             Command::Search { query } => print_search(query)?,
             Command::Update => {
                 search::initialize(true)?;
-            },
+            }
         }
         return Ok(());
     }
