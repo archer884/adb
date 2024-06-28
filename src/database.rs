@@ -2,7 +2,7 @@ use tantivy::{
     collector::TopDocs,
     query::{Query, QueryParser},
     schema::Value,
-    Index, TantivyDocument,
+    Index, IndexReader, TantivyDocument,
 };
 
 use crate::{
@@ -12,16 +12,22 @@ use crate::{
 
 pub struct Database {
     index: Index,
+    reader: IndexReader,
     fields: Fields,
 }
 
 impl Database {
     pub fn initialize() -> tantivy::Result<Self> {
         let (index, fields) = search::initialize(false)?;
-        Ok(Self { index, fields })
+        let reader = index.reader()?;
+
+        Ok(Self {
+            index,
+            reader,
+            fields,
+        })
     }
 
-    // FIXME: We probably want some way to not re-create the reader every time we perform a query.
     pub fn by_identifier(&self, identifier: &str) -> tantivy::Result<Option<Airport>> {
         let query = QueryParser::for_index(&self.index, vec![self.fields.identifier])
             .parse_query(identifier)?;
@@ -37,7 +43,7 @@ impl Database {
     }
 
     fn materialize_query(&self, query: &dyn Query, limit: usize) -> tantivy::Result<Vec<Airport>> {
-        let searcher = self.index.reader()?.searcher();
+        let searcher = self.reader.searcher();
         let candidates: Vec<_> = searcher
             .search(query, &TopDocs::with_limit(limit))?
             .into_iter()
