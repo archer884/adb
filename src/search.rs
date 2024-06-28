@@ -90,7 +90,7 @@ fn write_index(
         }
 
         writer.add_document(doc!(
-            fields.identifier => dbg!(ident.to_string()),
+            fields.identifier => ident.to_string(),
             fields.description => format!("{ident} {name}, {municipality}, {iso_region}, {iso_country}"),
             fields.facet => Facet::from(&format!("/{iso_country}/{iso_region}/{municipality}/{ident}/{name}")),
             fields.object => serde_json::to_string(&airport).unwrap(),
