@@ -1,7 +1,8 @@
 use tantivy::{
     collector::TopDocs,
     query::{Query, QueryParser},
-    Index,
+    schema::Value,
+    Index, TantivyDocument,
 };
 
 use crate::{
@@ -41,9 +42,9 @@ impl Database {
             .search(query, &TopDocs::with_limit(limit))?
             .into_iter()
             .filter_map(|(_, address)| searcher.doc(address).ok())
-            .filter_map(|document| {
-                let text = document.get_first(self.fields.object)?.as_text()?;
-                serde_json::from_str(text).ok()
+            .filter_map(|document: TantivyDocument| {
+                let data = document.get_first(self.fields.object)?.as_bytes()?;
+                serde_json::from_slice(data).ok()
             })
             .collect();
 

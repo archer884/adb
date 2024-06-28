@@ -172,6 +172,7 @@ impl FromStr for Coords {
     }
 }
 
+#[derive(Debug)]
 pub enum ParseCoordsError {
     MissingComponent,
     TooManyComponents,
@@ -181,6 +182,17 @@ pub enum ParseCoordsError {
 impl From<ParseFloatError> for ParseCoordsError {
     fn from(value: ParseFloatError) -> Self {
         ParseCoordsError::Float(value)
+    }
+}
+
+impl fmt::Display for ParseCoordsError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ParseCoordsError::MissingComponent | ParseCoordsError::TooManyComponents => {
+                f.write_str("bad coordinate format")
+            }
+            ParseCoordsError::Float(e) => write!(f, "bad coordinate value: {e}"),
+        }
     }
 }
 
