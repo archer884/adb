@@ -49,8 +49,10 @@ impl Database {
             .into_iter()
             .filter_map(|(_, address)| searcher.doc(address).ok())
             .filter_map(|document: TantivyDocument| {
-                let data = document.get_first(self.fields.object)?.as_bytes()?;
-                serde_json::from_slice(data).ok()
+                document
+                    .get_first(self.fields.object)?
+                    .as_str()
+                    .and_then(|s| serde_json::from_str(s).ok())
             })
             .collect();
 
