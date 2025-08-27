@@ -81,6 +81,7 @@ fn run(args: &Args) -> Result<()> {
 
 fn print_distance<T: AsRef<str>>(origin: &T, waypoints: &[T]) -> Result<()> {
     const METERS_PER_NAUTICAL_MILE: f64 = 1852.001;
+    const METERS_PER_MILE: f64 = 1609.344;
 
     let db = Database::initialize()?;
     let cache: HashMap<_, Waypoint> = iter::once(origin)
@@ -128,8 +129,9 @@ fn print_distance<T: AsRef<str>>(origin: &T, waypoints: &[T]) -> Result<()> {
     }
 
     println!(
-        "\nTotal distance: {:.01} nm",
-        dist / METERS_PER_NAUTICAL_MILE
+        "\nTotal distance: {:.01} nm ({:.01} miles)",
+        dist / METERS_PER_NAUTICAL_MILE,
+        dist / METERS_PER_MILE
     );
 
     Ok(())
