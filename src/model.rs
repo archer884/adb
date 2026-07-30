@@ -1,9 +1,9 @@
 use std::{borrow::Cow, fmt, str::FromStr};
 
 use geoutils::Location;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, bitcode::Encode, bitcode::Decode)]
 pub struct Airport {
     pub ident: String,
     pub kind: String,
@@ -119,7 +119,7 @@ pub struct AirportTemplate {
     longitude_deg: f64,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, bitcode::Encode, bitcode::Decode)]
 pub struct Coords {
     pub latitude: f64,
     pub longitude: f64,
@@ -182,7 +182,7 @@ pub struct RunwayTemplate {
     he_ident: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, bitcode::Encode, bitcode::Decode)]
 pub struct Runway {
     pub airport: String,
     pub name: String,

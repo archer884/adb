@@ -1,61 +1,111 @@
-use tantivy::{
-    collector::TopDocs,
-    query::{Query, QueryParser},
-    schema::Value,
-    Index, IndexReader, TantivyDocument,
-};
+use fst::automaton::Levenshtein;
+use fst::{IntoStreamer, Set, Streamer};
+use hashbrown::HashMap;
+use redb::{Database as Redb, ReadableDatabase};
 
-use crate::{
-    model::Airport,
-    search::{self, Fields},
+use crate::model::Airport;
+use crate::search::{
+    tokenize, AIRPORTS_TABLE, CODES_TABLE, META_TABLE, META_TERMS, POSTINGS_TABLE,
 };
+use crate::{Error, Result};
 
 pub struct Database {
-    index: Index,
-    reader: IndexReader,
-    fields: Fields,
+    db: Redb,
+    terms: Set<Vec<u8>>,
 }
 
 impl Database {
-    pub fn initialize() -> tantivy::Result<Self> {
-        let (index, fields) = search::initialize(false)?;
-        let reader = index.reader()?;
-
-        Ok(Self {
-            index,
-            reader,
-            fields,
-        })
+    pub fn initialize() -> Result<Self> {
+        let db = crate::search::initialize(false)?;
+        let terms = load_terms(&db)?;
+        Ok(Self { db, terms })
     }
 
-    pub fn by_identifier(&self, identifier: &str) -> tantivy::Result<Option<Airport>> {
-        let query = QueryParser::for_index(&self.index, vec![self.fields.identifier])
-            .parse_query(identifier)?;
+    pub fn by_identifier(&self, ident: &str) -> Result<Option<Airport>> {
+        if let Some(airport) = self.fetch(ident)? {
+            return Ok(Some(airport));
+        }
 
-        Ok(self.materialize_query(&query, 1)?.into_iter().next())
+        let lower = ident.to_lowercase();
+        let resolved = {
+            let txn = self.db.begin_read()?;
+            let table = match txn.open_multimap_table(CODES_TABLE) {
+                Ok(t) => t,
+                Err(redb::TableError::TableDoesNotExist(_)) => return Ok(None),
+                Err(e) => return Err(e.into()),
+            };
+            let mut found = None;
+            let iter = table.get(lower.as_str())?;
+            for item in iter {
+                found = Some(item?.value().to_owned());
+                break;
+            }
+            found
+        };
+
+        match resolved {
+            Some(ident) => self.fetch(&ident),
+            None => Ok(None),
+        }
     }
 
-    pub fn search(&self, query: &str) -> tantivy::Result<Vec<Airport>> {
-        let query = QueryParser::for_index(&self.index, vec![self.fields.description])
-            .parse_query(query)?;
+    pub fn search(&self, query: &str) -> Result<Vec<Airport>> {
+        let mut scores: HashMap<String, u32> = HashMap::new();
+        let txn = self.db.begin_read()?;
+        let postings = match txn.open_multimap_table(POSTINGS_TABLE) {
+            Ok(t) => t,
+            Err(redb::TableError::TableDoesNotExist(_)) => return Ok(vec![]),
+            Err(e) => return Err(e.into()),
+        };
 
-        self.materialize_query(&query, 25)
+        for token in tokenize(query) {
+            let lev = Levenshtein::new(token.as_str(), 1)?;
+            let mut stream = self.terms.search(&lev).into_stream();
+            while let Some(term_bytes) = stream.next() {
+                let term =
+                    std::str::from_utf8(term_bytes).map_err(|e| Error::Codec(e.to_string()))?;
+                let iter = postings.get(term)?;
+                for item in iter {
+                    let ident = item?.value().to_owned();
+                    *scores.entry(ident).or_insert(0) += 1;
+                }
+            }
+        }
+
+        let mut ranked: Vec<(String, u32)> = scores.into_iter().collect();
+        ranked.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+        ranked.truncate(25);
+
+        let mut results = Vec::with_capacity(ranked.len());
+        for (ident, _) in ranked {
+            if let Some(airport) = self.fetch(&ident)? {
+                results.push(airport);
+            }
+        }
+        Ok(results)
     }
 
-    fn materialize_query(&self, query: &dyn Query, limit: usize) -> tantivy::Result<Vec<Airport>> {
-        let searcher = self.reader.searcher();
-        let candidates: Vec<_> = searcher
-            .search(query, &TopDocs::with_limit(limit).order_by_score())?
-            .into_iter()
-            .filter_map(|(_, address)| searcher.doc(address).ok())
-            .filter_map(|document: TantivyDocument| {
-                document
-                    .get_first(self.fields.object)?
-                    .as_str()
-                    .and_then(|s| serde_json::from_str(s).ok())
-            })
-            .collect();
+    fn fetch(&self, ident: &str) -> Result<Option<Airport>> {
+        let txn = self.db.begin_read()?;
+        let table = match txn.open_table(AIRPORTS_TABLE) {
+            Ok(t) => t,
+            Err(redb::TableError::TableDoesNotExist(_)) => return Ok(None),
+            Err(e) => return Err(e.into()),
+        };
+        let Some(guard) = table.get(ident)? else {
+            return Ok(None);
+        };
+        let airport =
+            bitcode::decode::<Airport>(guard.value()).map_err(|e| Error::Codec(e.to_string()))?;
+        Ok(Some(airport))
+    }
+}
 
-        Ok(candidates)
+fn load_terms(db: &Redb) -> Result<Set<Vec<u8>>> {
+    let txn = db.begin_read()?;
+    let table = txn.open_table(META_TABLE)?;
+    match table.get(META_TERMS)? {
+        Some(guard) => Ok(Set::new(guard.value().to_vec())?),
+        None => Ok(Set::default()),
     }
 }

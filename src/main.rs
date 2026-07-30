@@ -137,7 +137,7 @@ fn print_distance<T: AsRef<str>>(origin: &T, waypoints: &[T]) -> Result<()> {
     Ok(())
 }
 
-fn print_search(query: &str) -> tantivy::Result<()> {
+fn print_search(query: &str) -> Result<()> {
     use std::io::{self, Write};
 
     let db = Database::initialize()?;
