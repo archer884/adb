@@ -137,7 +137,7 @@ fn build(db: &Database) -> Result<()> {
 
 pub fn tokenize(text: &str) -> Vec<String> {
     text.split(|c: char| !c.is_alphanumeric())
-        .filter(|s| !s.is_empty())
+        .filter(|s| s.len() > 2)
         .map(|s| s.to_lowercase())
         .collect()
 }

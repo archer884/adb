@@ -58,16 +58,28 @@ impl Database {
             Err(e) => return Err(e.into()),
         };
 
+        const EXACT_WEIGHT: u32 = 8;
+        const FUZZY_WEIGHT: u32 = 1;
+
         for token in tokenize(query) {
-            let lev = Levenshtein::new(token.as_str(), 1)?;
+            let token_str = token.as_str();
+
+            for item in postings.get(token_str)? {
+                let ident = item?.value().to_owned();
+                *scores.entry(ident).or_insert(0) += EXACT_WEIGHT;
+            }
+
+            let lev = Levenshtein::new(token_str, 1)?;
             let mut stream = self.terms.search(&lev).into_stream();
             while let Some(term_bytes) = stream.next() {
                 let term =
                     std::str::from_utf8(term_bytes).map_err(|e| Error::Codec(e.to_string()))?;
-                let iter = postings.get(term)?;
-                for item in iter {
+                if term == token_str {
+                    continue;
+                }
+                for item in postings.get(term)? {
                     let ident = item?.value().to_owned();
-                    *scores.entry(ident).or_insert(0) += 1;
+                    *scores.entry(ident).or_insert(0) += FUZZY_WEIGHT;
                 }
             }
         }
