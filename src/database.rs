@@ -45,7 +45,7 @@ impl Database {
     fn materialize_query(&self, query: &dyn Query, limit: usize) -> tantivy::Result<Vec<Airport>> {
         let searcher = self.reader.searcher();
         let candidates: Vec<_> = searcher
-            .search(query, &TopDocs::with_limit(limit))?
+            .search(query, &TopDocs::with_limit(limit).order_by_score())?
             .into_iter()
             .filter_map(|(_, address)| searcher.doc(address).ok())
             .filter_map(|document: TantivyDocument| {

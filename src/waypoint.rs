@@ -24,7 +24,7 @@ impl From<Coords> for Waypoint {
 }
 
 impl Waypoint {
-    pub fn name(&self) -> WaypointName {
+    pub fn name(&self) -> WaypointName<'_> {
         WaypointName { waypoint: self }
     }
 

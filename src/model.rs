@@ -1,4 +1,4 @@
-use std::{borrow::Cow, fmt, num::ParseFloatError, str::FromStr};
+use std::{borrow::Cow, fmt, str::FromStr};
 
 use geoutils::Location;
 use serde::{Deserialize, Serialize};
@@ -151,48 +151,20 @@ impl FromStr for Coords {
     type Err = ParseCoordsError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut values = s.split_ascii_whitespace();
-        let latitude: f64 = values
-            .next()
-            .ok_or(ParseCoordsError::MissingComponent)?
-            .parse()?;
-        let longitude: f64 = values
-            .next()
-            .ok_or(ParseCoordsError::MissingComponent)?
-            .parse()?;
-
-        if values.next().is_some() {
-            return Err(ParseCoordsError::TooManyComponents);
-        }
-
-        Ok(Coords {
-            latitude,
-            longitude,
+        let point = latlon::parse(s).map_err(|_| ParseCoordsError)?;
+        Ok(Self {
+            latitude: point.y(),
+            longitude: point.x(),
         })
     }
 }
 
 #[derive(Debug)]
-pub enum ParseCoordsError {
-    MissingComponent,
-    TooManyComponents,
-    Float(ParseFloatError),
-}
-
-impl From<ParseFloatError> for ParseCoordsError {
-    fn from(value: ParseFloatError) -> Self {
-        ParseCoordsError::Float(value)
-    }
-}
+pub struct ParseCoordsError;
 
 impl fmt::Display for ParseCoordsError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ParseCoordsError::MissingComponent | ParseCoordsError::TooManyComponents => {
-                f.write_str("bad coordinate format")
-            }
-            ParseCoordsError::Float(e) => write!(f, "bad coordinate value: {e}"),
-        }
+        f.write_str("bad coordinate format")
     }
 }
 
@@ -242,8 +214,52 @@ impl From<RunwayTemplate> for Runway {
 
 #[cfg(test)]
 mod tests {
+    use super::Coords;
+
+    fn assert_coords(input: &str, expected_lat: f64, expected_lng: f64) {
+        let coords = input
+            .parse::<Coords>()
+            .unwrap_or_else(|e| panic!("failed to parse {input:?}: {e}"));
+
+        let lat_diff = (coords.latitude - expected_lat).abs();
+        assert!(
+            lat_diff < 1e-6,
+            "latitude mismatch for {input:?}: got {}, want {} (diff {lat_diff})",
+            coords.latitude,
+            expected_lat,
+        );
+
+        let lng_diff = (coords.longitude - expected_lng).abs();
+        assert!(
+            lng_diff < 1e-6,
+            "longitude mismatch for {input:?}: got {}, want {} (diff {lng_diff})",
+            coords.longitude,
+            expected_lng,
+        );
+    }
+
     #[test]
-    fn can_parse_coordinates() {
-        todo!()
+    fn parse_decimal_degrees() {
+        assert_coords("40.6413 -73.7781", 40.6413, -73.7781);
+    }
+
+    #[test]
+    fn parse_dms_with_hemisphere_suffix() {
+        assert_coords("40° 26′ 46″ N 79° 58′ 56″ W", 40.446111, -79.982222);
+    }
+
+    #[test]
+    fn parse_dms_with_hemisphere_prefix_southern_eastern() {
+        assert_coords("S 33° 51′ 31″ E 151° 12′ 37″", -33.858611, 151.210278);
+    }
+
+    #[test]
+    fn parse_dms_with_negative_degrees() {
+        assert_coords("40° 26′ 46″ -79° 58′ 56″", 40.446111, -79.982222);
+    }
+
+    #[test]
+    fn parse_dms_ascii_without_degree_symbol() {
+        assert_coords("40 26' 46\" N 79 58' 56\" W", 40.446111, -79.982222);
     }
 }
